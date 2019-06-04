@@ -55,6 +55,49 @@ def binary_search(f, lo, hi):
     return hi
 
 
+def load_qna_dataset(enc,path,length=1024):
+    """Question followed by answer. Question may be truncated
+    but answer may not. No npz file"""
+    paths = []
+    if os.path.isfile(path):
+        # Simple file
+        paths.append(path)
+    elif os.path.isdir(path):
+        # Directory
+        for (dirpath, _, fnames) in os.walk(path):
+            for fname in fnames:
+                paths.append(os.path.join(dirpath, fname))
+    else:
+        # Assume glob
+        paths = glob.glob(path)
+
+    token_chunks = []
+    for path in tqdm.tqdm(paths):
+        if path.endswith('.npz'):
+            # Pre-encoded
+            raise Exception("npz not supported for qna")
+        else:
+            # Plain text
+            
+            try:
+                with open(path, 'r') as fp:
+                    raw_text = fp.read()
+                    for qna in tqdm.tqdm(raw_text.split('\n\n')):
+                        if qna=='': continue
+                        question,answer = qna.split('\n')
+                        answer="\n"+answer
+                        qchunk = np.stack(enc.encode(question))
+                        achunk = np.stack(enc.encode(answer))
+                        qchunk = qchunk[:length-len(achunk)]
+                        chunk = np.concatenate([qchunk,achunk],axis=0)
+                        token_chunks.append(chunk)
+            except Exception as e:
+                print(str(e))
+                import pdb;
+                pdb.set_trace()
+    return token_chunks
+
+
 class Sampler(object):
     """Fairly samples a slice from a set of variable sized chunks.
 
@@ -81,3 +124,30 @@ class Sampler(object):
             if self.boundaries[i + 1] > index + length:
                 within_chunk = index - self.boundaries[i]
                 return self.chunks[i][within_chunk:within_chunk + length]
+
+class WholeChunkSampler(object):
+    """Returns one complete chunk with right truncation after sampling
+    one chunk among all chunks.
+    This is useful for some specific tasks like question answering
+    where we can't begin from arbitrary position, but only from start.
+
+    If the length of the chunk is smaller than the desired length, next
+    chunk is appended."""
+
+    def __init__(self,chunks,seed=None):
+        self.chunks = chunks
+        self.n_chunks = len(self.chunks)
+        self.rs = np.random.RandomState(seed=seed)
+
+    def sample(self,length):
+
+        index = self.rs.randint(self.n_chunks)
+
+        chunk = self.chunks[index][:length]
+
+        while len(chunk)<length:
+            index = (index+1)%self.n_chunks
+            chunk = np.concatenate((chunk,
+                            self.chunks[index][:length-len(chunk)]),axis=0)
+
+        return chunk

@@ -7,7 +7,7 @@ import argparse
 import numpy as np
 
 import encoder
-from load_dataset import load_dataset
+from load_dataset import load_dataset,load_qna_dataset
 
 parser = argparse.ArgumentParser(
     description='Pre-encode text files into tokenized training set.',
@@ -21,7 +21,8 @@ def main():
     args = parser.parse_args()
     enc = encoder.get_encoder(args.model_name)
     print('Reading files')
-    chunks = load_dataset(enc, args.in_text, args.combine)
+    chunks = load_qna_dataset(enc, args.in_text)
+    import pdb; pdb.set_trace()
     print('Writing', args.out_npz)
     np.savez_compressed(args.out_npz, *chunks)
 

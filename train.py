@@ -12,7 +12,7 @@ import tqdm
 from tensorflow.core.protobuf import rewriter_config_pb2
 
 import model, sample, encoder
-from load_dataset import load_dataset, Sampler
+from load_dataset import load_qna_dataset as load_dataset, WholeChunkSampler as Sampler
 from accumulate import AccumulatingOptimizer
 import memory_saving_gradients
 
