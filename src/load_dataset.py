@@ -137,6 +137,7 @@ class WholeChunkSampler(object):
     def __init__(self,chunks,seed=None):
         self.chunks = chunks
         self.n_chunks = len(self.chunks)
+        self.total_size = sum(chunk.shape[0] for chunk in chunks)
         self.rs = np.random.RandomState(seed=seed)
 
     def sample(self,length):
