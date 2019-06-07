@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import re
 import fire
 import json
 import os
@@ -69,6 +70,7 @@ def interact_model(
 
         while True:
             raw_text = input("Model prompt >>> ")
+            raw_text = re.sub(r'\\n','\n',raw_text)
             while not raw_text:
                 print('Prompt should not be empty!')
                 raw_text = input("Model prompt >>> ")
